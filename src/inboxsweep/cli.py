@@ -51,11 +51,14 @@ def load_credentials() -> Credentials:
     return Credentials(host=host, user=user, password=password)
 
 
-def scan(client: MailClient, folder: str, since: date) -> list[SenderSummary]:
+def scan(
+    client: MailClient, folder: str, since: date, min_count: int = 1
+) -> list[SenderSummary]:
     client.select(folder)
     ids = client.search_since(since)
     messages = [parse_message(client.fetch_headers(i)) for i in ids]
-    return aggregate_by_sender(messages)
+    summaries = aggregate_by_sender(messages)
+    return [s for s in summaries if s.count >= min_count]
 
 
 def find_sender_messages(client: MailClient, folder: str, sender: str) -> list[str]:
@@ -92,7 +95,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
         return 1
     try:
         with MailClient(creds) as client:
-            summaries = scan(client, args.folder, since)
+            summaries = scan(client, args.folder, since, args.min_count)
     except ImapError as e:
         print(f"inboxsweep: {e}", file=sys.stderr)
         return 1
@@ -145,6 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
     scan_p = sub.add_parser("scan", help="rank senders cluttering a folder")
     scan_p.add_argument("--since", default="90d")
     scan_p.add_argument("--folder", default="INBOX")
+    scan_p.add_argument(
+        "--min-count", type=int, default=1, help="hide senders below this many messages"
+    )
     scan_p.set_defaults(func=cmd_scan)
 
     archive_p = sub.add_parser("archive", help="move a sender's messages to another folder")

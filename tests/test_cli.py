@@ -97,6 +97,31 @@ class TestScanLogic(unittest.TestCase):
         self.assertEqual(summaries[0].count, 2)
 
 
+class TestScanMinCount(unittest.TestCase):
+    def test_min_count_filters_out_small_senders(self):
+        fake = FakeConn(
+            search_results={"SINCE": ["1", "2", "3"]},
+            fetch_results={
+                "1": b"From: frequent@a.com\r\n\r\n",
+                "2": b"From: frequent@a.com\r\n\r\n",
+                "3": b"From: rare@b.com\r\n\r\n",
+            },
+        )
+        client = MailClient(CREDS, connection=fake)
+        summaries = scan(client, "INBOX", date(2026, 1, 1), min_count=2)
+        senders = [s.sender_email for s in summaries]
+        self.assertEqual(senders, ["frequent@a.com"])
+
+    def test_min_count_one_keeps_everything(self):
+        fake = FakeConn(
+            search_results={"SINCE": ["1"]},
+            fetch_results={"1": b"From: a@a.com\r\n\r\n"},
+        )
+        client = MailClient(CREDS, connection=fake)
+        summaries = scan(client, "INBOX", date(2026, 1, 1), min_count=1)
+        self.assertEqual(len(summaries), 1)
+
+
 class TestFormatReport(unittest.TestCase):
     def test_empty_report(self):
         self.assertIn("No messages", format_report([]))
@@ -143,7 +168,7 @@ class TestCmdScanIntegration(unittest.TestCase):
         with mock.patch.dict(os.environ, env, clear=True), mock.patch(
             "inboxsweep.cli.MailClient", return_value=real_client
         ):
-            args = argparse.Namespace(since="90d", folder="INBOX")
+            args = argparse.Namespace(since="90d", folder="INBOX", min_count=1)
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 code = cmd_scan(args)
