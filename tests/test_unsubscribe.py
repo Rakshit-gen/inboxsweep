@@ -46,6 +46,16 @@ class TestParseListUnsubscribe(unittest.TestCase):
         )
         self.assertFalse(info.safe_to_automate)
 
+    def test_post_header_with_wrong_value_is_not_one_click(self):
+        # Regression test: the header only means what RFC 8058 says it
+        # means when its value is exactly "List-Unsubscribe=One-Click".
+        # Treating any non-empty value as one-click would let a sender
+        # that sets this header for some unrelated reason get
+        # misclassified as safe to automate.
+        info = parse_list_unsubscribe("<https://example.com/unsub>", "something-else")
+        self.assertFalse(info.one_click)
+        self.assertFalse(info.safe_to_automate)
+
     def test_no_valid_uris_gives_none_fields(self):
         info = parse_list_unsubscribe("garbage, no angle brackets", None)
         self.assertIsNone(info.mailto)

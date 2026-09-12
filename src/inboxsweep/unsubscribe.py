@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 
 _URI_RE = re.compile(r"<([^>]+)>")
+_ONE_CLICK_VALUE = "list-unsubscribe=one-click"
 
 
 @dataclass
@@ -40,8 +41,13 @@ def parse_list_unsubscribe(
     mailto = next((u for u in uris if u.lower().startswith("mailto:")), None)
     url = next((u for u in uris if u.lower().startswith("http")), None)
 
+    one_click = (
+        list_unsubscribe_post is not None
+        and list_unsubscribe_post.strip().lower() == _ONE_CLICK_VALUE
+    )
+
     return UnsubscribeInfo(
         mailto=mailto,
         url=url,
-        one_click=bool(list_unsubscribe_post),
+        one_click=one_click,
     )
