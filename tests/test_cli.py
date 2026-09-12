@@ -8,6 +8,8 @@ from unittest import mock
 
 from inboxsweep.aggregate import SenderSummary
 from inboxsweep.cli import (
+    cmd_archive,
+    cmd_delete,
     cmd_scan,
     find_sender_messages,
     format_report,
@@ -148,6 +150,103 @@ class TestCmdScanIntegration(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertIn("news@a.com", out.getvalue())
+
+
+class TestCmdArchiveIntegration(unittest.TestCase):
+    ENV = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
+
+    def test_dry_run_does_not_move_anything(self):
+        fake = FakeConn(search_results={"FROM": ["1", "2"]})
+        real_client = MailClient(CREDS, connection=fake)
+
+        with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
+            "inboxsweep.cli.MailClient", return_value=real_client
+        ):
+            args = argparse.Namespace(
+                sender="news@a.com", folder="INBOX", to_folder="Archive", apply=False
+            )
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cmd_archive(args)
+
+        self.assertEqual(code, 0)
+        self.assertIn("Would move 2", out.getvalue())
+        self.assertEqual(fake.copied, [])
+        self.assertFalse(fake.expunged)
+
+    def test_apply_actually_moves(self):
+        fake = FakeConn(search_results={"FROM": ["1", "2"]})
+        real_client = MailClient(CREDS, connection=fake)
+
+        with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
+            "inboxsweep.cli.MailClient", return_value=real_client
+        ):
+            args = argparse.Namespace(
+                sender="news@a.com", folder="INBOX", to_folder="Archive", apply=True
+            )
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cmd_archive(args)
+
+        self.assertEqual(code, 0)
+        self.assertIn("Moved 2", out.getvalue())
+        self.assertEqual(fake.copied, [("1,2", "Archive")])
+        self.assertTrue(fake.expunged)
+
+    def test_no_matching_messages(self):
+        fake = FakeConn(search_results={"FROM": []})
+        real_client = MailClient(CREDS, connection=fake)
+
+        with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
+            "inboxsweep.cli.MailClient", return_value=real_client
+        ):
+            args = argparse.Namespace(
+                sender="ghost@a.com", folder="INBOX", to_folder="Archive", apply=True
+            )
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cmd_archive(args)
+
+        self.assertEqual(code, 0)
+        self.assertIn("No messages", out.getvalue())
+        self.assertEqual(fake.copied, [])
+
+
+class TestCmdDeleteIntegration(unittest.TestCase):
+    ENV = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
+
+    def test_dry_run_does_not_delete_anything(self):
+        fake = FakeConn(search_results={"FROM": ["7"]})
+        real_client = MailClient(CREDS, connection=fake)
+
+        with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
+            "inboxsweep.cli.MailClient", return_value=real_client
+        ):
+            args = argparse.Namespace(sender="spam@a.com", folder="INBOX", apply=False)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cmd_delete(args)
+
+        self.assertEqual(code, 0)
+        self.assertIn("Would delete 1", out.getvalue())
+        self.assertEqual(fake.stored, [])
+        self.assertFalse(fake.expunged)
+
+    def test_apply_actually_deletes(self):
+        fake = FakeConn(search_results={"FROM": ["7"]})
+        real_client = MailClient(CREDS, connection=fake)
+
+        with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
+            "inboxsweep.cli.MailClient", return_value=real_client
+        ):
+            args = argparse.Namespace(sender="spam@a.com", folder="INBOX", apply=True)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cmd_delete(args)
+
+        self.assertEqual(code, 0)
+        self.assertIn("Deleted 1", out.getvalue())
+        self.assertTrue(fake.expunged)
 
 
 if __name__ == "__main__":
