@@ -135,10 +135,41 @@ class TestFormatReport(unittest.TestCase):
 
 class TestFindSenderMessages(unittest.TestCase):
     def test_returns_matching_ids(self):
-        fake = FakeConn(search_results={"FROM": ["10", "11"]})
+        fake = FakeConn(
+            search_results={"FROM": ["10", "11"]},
+            fetch_results={
+                "10": b"From: news@a.com\r\n\r\n",
+                "11": b"From: news@a.com\r\n\r\n",
+            },
+        )
         client = MailClient(CREDS, connection=fake)
         ids = find_sender_messages(client, "INBOX", "news@a.com")
         self.assertEqual(ids, ["10", "11"])
+
+    def test_filters_out_imap_substring_false_positives(self):
+        # Regression test: IMAP's SEARCH FROM matches substrings of the
+        # whole From header, so a search for "news@a.com" used to also
+        # return a message actually from "othernews@a.com" as long as
+        # the server's search considered it a match.
+        fake = FakeConn(
+            search_results={"FROM": ["10", "11"]},
+            fetch_results={
+                "10": b"From: news@a.com\r\n\r\n",
+                "11": b"From: othernews@a.com\r\n\r\n",
+            },
+        )
+        client = MailClient(CREDS, connection=fake)
+        ids = find_sender_messages(client, "INBOX", "news@a.com")
+        self.assertEqual(ids, ["10"])
+
+    def test_sender_match_is_case_insensitive(self):
+        fake = FakeConn(
+            search_results={"FROM": ["10"]},
+            fetch_results={"10": b"From: NEWS@A.COM\r\n\r\n"},
+        )
+        client = MailClient(CREDS, connection=fake)
+        ids = find_sender_messages(client, "INBOX", "news@a.com")
+        self.assertEqual(ids, ["10"])
 
 
 class TestLoadCredentials(unittest.TestCase):
@@ -196,7 +227,13 @@ class TestCmdArchiveIntegration(unittest.TestCase):
     ENV = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
 
     def test_dry_run_does_not_move_anything(self):
-        fake = FakeConn(search_results={"FROM": ["1", "2"]})
+        fake = FakeConn(
+            search_results={"FROM": ["1", "2"]},
+            fetch_results={
+                "1": b"From: news@a.com\r\n\r\n",
+                "2": b"From: news@a.com\r\n\r\n",
+            },
+        )
         real_client = MailClient(CREDS, connection=fake)
 
         with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
@@ -215,7 +252,13 @@ class TestCmdArchiveIntegration(unittest.TestCase):
         self.assertFalse(fake.expunged)
 
     def test_apply_actually_moves(self):
-        fake = FakeConn(search_results={"FROM": ["1", "2"]})
+        fake = FakeConn(
+            search_results={"FROM": ["1", "2"]},
+            fetch_results={
+                "1": b"From: news@a.com\r\n\r\n",
+                "2": b"From: news@a.com\r\n\r\n",
+            },
+        )
         real_client = MailClient(CREDS, connection=fake)
 
         with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
@@ -256,7 +299,10 @@ class TestCmdDeleteIntegration(unittest.TestCase):
     ENV = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
 
     def test_dry_run_does_not_delete_anything(self):
-        fake = FakeConn(search_results={"FROM": ["7"]})
+        fake = FakeConn(
+            search_results={"FROM": ["7"]},
+            fetch_results={"7": b"From: spam@a.com\r\n\r\n"},
+        )
         real_client = MailClient(CREDS, connection=fake)
 
         with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(
@@ -273,7 +319,10 @@ class TestCmdDeleteIntegration(unittest.TestCase):
         self.assertFalse(fake.expunged)
 
     def test_apply_actually_deletes(self):
-        fake = FakeConn(search_results={"FROM": ["7"]})
+        fake = FakeConn(
+            search_results={"FROM": ["7"]},
+            fetch_results={"7": b"From: spam@a.com\r\n\r\n"},
+        )
         real_client = MailClient(CREDS, connection=fake)
 
         with mock.patch.dict(os.environ, self.ENV, clear=True), mock.patch(

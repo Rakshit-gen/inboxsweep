@@ -62,8 +62,24 @@ def scan(
 
 
 def find_sender_messages(client: MailClient, folder: str, sender: str) -> list[str]:
+    """Finds messages from an exact sender address.
+
+    IMAP's SEARCH FROM does a substring match on the whole From header,
+    not an exact address match, so searching for "news@a.com" would
+    also catch a message from "othernews@a.com" or a display name that
+    happens to contain that text. That's an easy way to archive or
+    delete the wrong mail, so every candidate ID gets its header
+    re-checked against the exact address before being treated as a
+    match.
+    """
     client.select(folder)
-    return client.search_from(sender)
+    candidate_ids = client.search_from(sender)
+    sender = sender.strip().lower()
+    return [
+        msg_id
+        for msg_id in candidate_ids
+        if parse_message(client.fetch_headers(msg_id)).sender_email == sender
+    ]
 
 
 def format_report(summaries: list[SenderSummary]) -> str:
