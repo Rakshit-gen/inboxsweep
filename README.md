@@ -79,6 +79,21 @@ inboxsweep archive --sender newsletter@example.com
 inboxsweep delete --sender spammy@example.com --apply
 ```
 
+## Example
+
+```
+$ inboxsweep scan --since 90d
+Sender                               Count  Unsubscribe
+deals@retailer.com                      42  one-click, verified safe: https://retailer.com/unsub?id=abc
+news@blog.com                           18  mailto only, verify manually: mailto:unsub@blog.com
+friend@example.com                       3  no unsubscribe link found
+```
+
+`deals@retailer.com` is the only one inboxsweep would ever call "safe":
+a real https unsubscribe link plus the RFC 8058 one-click header. The
+blog's mailto-based unsubscribe still shows up, but nothing here clicks
+it or sends that email for you.
+
 ## License
 
 MIT
