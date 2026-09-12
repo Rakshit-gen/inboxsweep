@@ -43,10 +43,12 @@ def aggregate_by_sender(
             if unsubscribe is None or (info.safe_to_automate and not unsubscribe.safe_to_automate):
                 unsubscribe = info
 
+        sender_name = next((m.sender_name for m in msgs if m.sender_name), "")
+
         summaries.append(
             SenderSummary(
                 sender_email=sender_email,
-                sender_name=msgs[0].sender_name,
+                sender_name=sender_name,
                 count=len(msgs),
                 sample_subjects=[m.subject for m in msgs[:sample_size] if m.subject],
                 unsubscribe=unsubscribe,

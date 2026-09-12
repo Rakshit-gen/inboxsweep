@@ -132,6 +132,19 @@ class TestFormatReport(unittest.TestCase):
         self.assertIn("a@a.com", report)
         self.assertIn("no unsubscribe link found", report)
 
+    def test_sender_name_shown_when_present(self):
+        summaries = [
+            SenderSummary(sender_email="deals@retailer.com", sender_name="Retailer Deals", count=5)
+        ]
+        report = format_report(summaries)
+        self.assertIn("Retailer Deals <deals@retailer.com>", report)
+
+    def test_falls_back_to_bare_email_without_a_name(self):
+        summaries = [SenderSummary(sender_email="a@a.com", sender_name="", count=5)]
+        report = format_report(summaries)
+        self.assertIn("a@a.com", report)
+        self.assertNotIn("<a@a.com>", report)
+
 
 class TestFindSenderMessages(unittest.TestCase):
     def test_returns_matching_ids(self):

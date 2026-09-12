@@ -98,7 +98,8 @@ def format_report(summaries: list[SenderSummary]) -> str:
             unsub = f"mailto only, verify manually: {s.unsubscribe.mailto}"
         else:
             unsub = "unsubscribe header present but unparseable"
-        lines.append(f"{s.sender_email:<35}{s.count:>7}  {unsub}")
+        label = f"{s.sender_name} <{s.sender_email}>" if s.sender_name else s.sender_email
+        lines.append(f"{label:<35}{s.count:>7}  {unsub}")
     return "\n".join(lines)
 
 

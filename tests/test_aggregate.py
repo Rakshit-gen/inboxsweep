@@ -44,6 +44,17 @@ class TestAggregateBySender(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
         self.assertEqual(summaries[0].sender_email, "real@a.com")
 
+    def test_picks_first_non_empty_sender_name(self):
+        # Regression test: the display name isn't always present on
+        # every message from a sender, an earlier message with a blank
+        # name shouldn't blank out a name a later message actually has.
+        messages = [
+            msg("a@a.com", sender_name=""),
+            msg("a@a.com", sender_name="Retailer Deals"),
+        ]
+        summaries = aggregate_by_sender(messages)
+        self.assertEqual(summaries[0].sender_name, "Retailer Deals")
+
     def test_prefers_safe_to_automate_unsubscribe_when_mixed(self):
         messages = [
             msg("a@a.com", list_unsub="<https://a.com/unsub>"),  # not one-click
