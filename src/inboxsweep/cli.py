@@ -163,24 +163,28 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     scan_p = sub.add_parser("scan", help="rank senders cluttering a folder")
-    scan_p.add_argument("--since", default="90d")
-    scan_p.add_argument("--folder", default="INBOX")
+    scan_p.add_argument("--since", default="90d", help="how far back to look, e.g. 90d, 12w, 48h")
+    scan_p.add_argument("--folder", default="INBOX", help="IMAP folder to scan (default: INBOX)")
     scan_p.add_argument(
         "--min-count", type=int, default=1, help="hide senders below this many messages"
     )
     scan_p.set_defaults(func=cmd_scan)
 
     archive_p = sub.add_parser("archive", help="move a sender's messages to another folder")
-    archive_p.add_argument("--sender", required=True)
-    archive_p.add_argument("--folder", default="INBOX")
-    archive_p.add_argument("--to-folder", default="Archive")
-    archive_p.add_argument("--apply", action="store_true")
+    archive_p.add_argument("--sender", required=True, help="exact sender address to match")
+    archive_p.add_argument("--folder", default="INBOX", help="folder to search (default: INBOX)")
+    archive_p.add_argument("--to-folder", default="Archive", help="destination folder (default: Archive)")
+    archive_p.add_argument(
+        "--apply", action="store_true", help="actually move messages (default: dry run)"
+    )
     archive_p.set_defaults(func=cmd_archive)
 
     delete_p = sub.add_parser("delete", help="permanently delete a sender's messages")
-    delete_p.add_argument("--sender", required=True)
-    delete_p.add_argument("--folder", default="INBOX")
-    delete_p.add_argument("--apply", action="store_true")
+    delete_p.add_argument("--sender", required=True, help="exact sender address to match")
+    delete_p.add_argument("--folder", default="INBOX", help="folder to search (default: INBOX)")
+    delete_p.add_argument(
+        "--apply", action="store_true", help="actually delete messages (default: dry run)"
+    )
     delete_p.set_defaults(func=cmd_delete)
 
     return parser
