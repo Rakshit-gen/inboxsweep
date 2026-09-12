@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inboxsweep"
+version = "0.1.0"
+description = "Rank the senders cluttering your inbox and safely clean them up over IMAP."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.scripts]
+inboxsweep = "inboxsweep.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
