@@ -152,6 +152,21 @@ class TestCmdScanIntegration(unittest.TestCase):
         self.assertIn("news@a.com", out.getvalue())
 
 
+class TestCmdScanBadSince(unittest.TestCase):
+    def test_malformed_since_is_a_clean_error_not_a_crash(self):
+        # Regression test: a bad --since value used to raise an
+        # unhandled ValueError all the way out of main(), printing a
+        # full traceback instead of a one-line usage error.
+        env = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            args = argparse.Namespace(since="garbage", folder="INBOX")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = cmd_scan(args)
+        self.assertEqual(code, 1)
+        self.assertIn("--since", err.getvalue())
+
+
 class TestCmdArchiveIntegration(unittest.TestCase):
     ENV = {"INBOXSWEEP_HOST": "h", "INBOXSWEEP_USER": "u", "INBOXSWEEP_PASS": "p"}
 

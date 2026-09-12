@@ -85,7 +85,11 @@ def format_report(summaries: list[SenderSummary]) -> str:
 
 def cmd_scan(args: argparse.Namespace) -> int:
     creds = load_credentials()
-    since = parse_since(args.since)
+    try:
+        since = parse_since(args.since)
+    except ValueError as e:
+        print(f"inboxsweep: {e}", file=sys.stderr)
+        return 1
     try:
         with MailClient(creds) as client:
             summaries = scan(client, args.folder, since)
