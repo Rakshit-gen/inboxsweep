@@ -91,8 +91,8 @@ inboxsweep delete --sender spammy@example.com --apply
 ```
 $ inboxsweep scan --since 90d
 Sender                               Count  Unsubscribe
-deals@retailer.com                      42  one-click, verified safe: https://retailer.com/unsub?id=abc
-news@blog.com                           18  mailto only, verify manually: mailto:unsub@blog.com
+Retailer Deals <deals@retailer.com>     42  one-click, verified safe: https://retailer.com/unsub?id=abc
+Weekly Blog <news@blog.com>             18  mailto only, verify manually: mailto:unsub@blog.com
 friend@example.com                       3  no unsubscribe link found
 ```
 
