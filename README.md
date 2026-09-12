@@ -64,6 +64,13 @@ inboxsweep scan --since 90d
 This only fetches headers, not message bodies, and uses `BODY.PEEK[HEADER]`
 specifically so scanning never marks anything as read.
 
+Hide senders that only show up once or twice, since those are rarely
+the ones worth acting on:
+
+```
+inboxsweep scan --since 90d --min-count 5
+```
+
 Archive everything from a sender once you've decided it's junk:
 
 ```
