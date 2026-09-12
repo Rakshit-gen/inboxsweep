@@ -29,7 +29,16 @@ def parse_message(raw_headers: bytes) -> MessageInfo:
 
     name, email_addr = parseaddr(str(msg.get("From", "")))
 
-    raw_date = msg.get("Date")
+    # policy.default parses the Date header eagerly, so on some Python
+    # versions (3.9) a malformed date raises TypeError right out of
+    # msg.get("Date") itself, before parsedate_to_datetime is ever
+    # called explicitly below. Both the fetch and the explicit parse
+    # need to be guarded.
+    try:
+        raw_date = msg.get("Date")
+    except (TypeError, ValueError):
+        raw_date = None
+
     date = None
     if raw_date:
         try:
