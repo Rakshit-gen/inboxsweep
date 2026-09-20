@@ -40,6 +40,10 @@ class MailClient:
         conn = imaplib.IMAP4_SSL(self.creds.host, self.creds.port)
         typ, _ = conn.login(self.creds.user, self.creds.password)
         if typ != "OK":
+            try:
+                conn.logout()
+            except Exception:
+                pass
             raise ImapError(f"login failed for {self.creds.user}")
         self._conn = conn
 
