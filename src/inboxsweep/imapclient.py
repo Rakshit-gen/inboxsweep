@@ -90,12 +90,16 @@ class MailClient:
         typ, _ = self._conn.copy(id_set, target_folder)
         if typ != "OK":
             raise ImapError(f"copy to {target_folder!r} failed")
-        self._conn.store(id_set, "+FLAGS", r"(\Deleted)")
+        typ, _ = self._conn.store(id_set, "+FLAGS", r"(\Deleted)")
+        if typ != "OK":
+            raise ImapError(f"marking messages deleted failed")
         self._conn.expunge()
 
     def delete(self, msg_ids: list[str]) -> None:
         if not msg_ids:
             return
         id_set = ",".join(msg_ids)
-        self._conn.store(id_set, "+FLAGS", r"(\Deleted)")
+        typ, _ = self._conn.store(id_set, "+FLAGS", r"(\Deleted)")
+        if typ != "OK":
+            raise ImapError(f"marking messages deleted failed")
         self._conn.expunge()
